@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script type="module">
+      import { Color } from "https://unpkg.com/three/build/three.module.js";
+      const canvas = document.getElementById("canvas");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      //  const webgl = canvas.getContext("2d"); //二维
+      // 上下文对象
+      const gl = canvas.getContext("webgl");
+      // 指定绘图区的颜色,区域[0,1]
+      gl.clearColor(0.3, 0, 0.3, 1);
+      // 刷底色
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      //css color
+      const rgbaCss = `rgba(255,255,0,1)`;
+      const reg = RegExp(/\((.*)\)/);
+      // 捕捉数据
+      const rgbaStr = reg.exec(rgbaCss)[1];
+      console.log("====================================");
+      console.log(rgbaStr);
+      console.log("====================================");
+      const rgb = rgbaStr.split(",").map((ele) => parseInt(ele));
+      const r = rgb[0] / 255;
+      const g = rgb[1] / 255;
+      const b = rgb[2] / 255;
+      const a = rgb[3];
+
+      gl.clearColor(r, g, b, a);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      // 建立Color 对象
+      const color = new Color(rgbaCss);
+      gl.clearColor(color.r, color.g, color.b, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      !(function ani() {
+        color.offsetHSL(0.0005, 0, 0);
+        gl.clearColor(color.r, color.g, color.b, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        requestAnimationFrame(ani);
+      })();
+    </script>
+  </body>
+</html>

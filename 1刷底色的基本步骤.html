@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+
+    <canvas id="canvas"></canvas>
+    <script type="module">
+      
+      const canvas = document.getElementById("canvas");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      //  const webgl = canvas.getContext("2d"); //二维
+      // 上下文对象
+      const gl = canvas.getContext("webgl");
+      // 指定绘图区的颜色,区域[0,1]
+      gl.clearColor(0.3, 0, 0.3, 1);
+      // 刷底色
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+    </script>
+  </body>
+</html>
