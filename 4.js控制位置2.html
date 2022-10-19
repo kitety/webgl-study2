@@ -16,9 +16,10 @@
   <body>
     <canvas id="canvas"></canvas>
     <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec4 a_Position;
       void main(){
         // 点位
-        gl_Position =vec4(0,0,0,1);
+        gl_Position = a_Position;
         //尺寸
         gl_PointSize=50.0;
       }
@@ -50,8 +51,34 @@
       gl.clearColor(0, 0, 0, 1);
       // 刷底色
       gl.clear(gl.COLOR_BUFFER_BIT);
+
+      // 获取a_Position的存储空间
+      const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      console.log("a_Position: ", a_Position);
+      // a_Position的修改
+      // gl.vertexAttrib3f(a_Position, -0.23353, 0.5, 0);
+      // gl.vertexAttrib1f(a_Position, -0.23353);
+      gl.vertexAttrib2f(a_Position, -0.3, 0);
+
       // 绘制定点
       gl.drawArrays(gl.POINTS, 0, 1);
+
+      // 绘制另外的一个点
+      gl.vertexAttrib2f(a_Position, 0.3, 0);
+
+      // 绘制定点
+      gl.drawArrays(gl.POINTS, 0, 1);
+
+      // 一秒之后再添加一个点
+      setTimeout(function () {
+        // 异步
+        // 异步方法执行会重置缓冲区
+        // 绘制另外的一个点
+        gl.vertexAttrib2f(a_Position, 0, 0);
+
+        // 绘制定点
+        gl.drawArrays(gl.POINTS, 0.5, 1);
+      }, 1e3);
     </script>
   </body>
 </html>

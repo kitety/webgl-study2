@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec4 a_Position;
+      void main(){
+        // 点位
+        gl_Position = a_Position;
+        //尺寸
+        gl_PointSize=50.0;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      void main(){
+       // 颜色
+       gl_FragColor = vec4(1,1,0,1);
+      }
+    </script>
+    <script type="module">
+      import { initShaders } from "./jsm/Utils.js";
+      const canvas = document.querySelector("#canvas");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      // 获取着色器文本
+      const vsSource = document.getElementById("vertexShader").innerText;
+      console.log("vsSource: ", vsSource);
+      const fsSource = document.getElementById("fragmentShader").innerText;
+      console.log("fsSource: ", fsSource);
+      // 上下文对象
+      const gl = canvas.getContext("webgl");
+      // 初始化着色器
+      //解析着色器文本，整合到程序对象里，关联webgl上下文对象，实现两种语言的相互通信
+      initShaders(gl, vsSource, fsSource);
+      console.log("gl: ", gl);
+
+      // 声明颜色
+      gl.clearColor(0, 0, 0, 1);
+      // 刷底色
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      // 存储定点数据的数组
+      const a_points = [
+        {
+          x: -0.3,
+          y: 0,
+        },
+        {
+          x: 0.3,
+          y: 0,
+        },
+      ];
+
+      // 获取a_Position的存储空间
+      const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      console.log("a_Position: ", a_Position);
+      // a_Position的修改
+      // gl.vertexAttrib3f(a_Position, -0.23353, 0.5, 0);
+      // gl.vertexAttrib1f(a_Position, -0.23353);
+      // gl.vertexAttrib2f(a_Position, -0.3, 0);
+
+      // // 绘制定点
+      // gl.drawArrays(gl.POINTS, 0, 1);
+
+      // // 绘制另外的一个点
+      // gl.vertexAttrib2f(a_Position, 0.3, 0);
+
+      // // 绘制定点
+      // gl.drawArrays(gl.POINTS, 0, 1);
+
+      // 一秒之后再添加一个点
+      setTimeout(function () {
+        // 异步
+        // 异步方法执行会重置缓冲区
+        // 绘制另外的一个点
+        // gl.vertexAttrib2f(a_Position, 0, 0);
+
+        // 绘制定点
+        // gl.drawArrays(gl.POINTS, 0, 1);
+        a_points.push({ x: 0, y: 0 });
+        render();
+      }, 1e3);
+
+      // 渲染方法
+      function render() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        for (let i = 0; i < a_points.length; i++) {
+          const element = a_points[i];
+          console.log("element: ", element);
+          gl.vertexAttrib2f(a_Position, element.x, element.y);
+          // 绘制定点
+          // 同步执行不会重置缓冲区
+          gl.drawArrays(gl.POINTS, 0, 1);
+        }
+      }
+      render();
+    </script>
+  </body>
+</html>
