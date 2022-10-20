@@ -9,7 +9,10 @@
         overflow: hidden;
       }
       canvas {
-        background-color: red;
+        background-image: url("https://cdn.jsdelivr.net/gh/kitety/blog_img@master/image/202210191654755.png");
+        background-size: cover;
+        background-position: right bottom;
+        background-repeat: no-repeat;
       }
     </style>
   </head>
@@ -17,23 +20,40 @@
     <canvas id="canvas"></canvas>
     <script id="vertexShader" type="x-shader/x-vertex">
       attribute vec4 a_Position;
+      attribute float a_PointSize;
       void main(){
         // 点位
         gl_Position = a_Position;
         //尺寸
-        gl_PointSize=50.0;
+        gl_PointSize=a_PointSize;
       }
     </script>
     <script id="fragmentShader" type="x-shader/x-fragment">
-      void main(){
-       // 颜色
-       gl_FragColor = vec4(1,1,0,1);
-      }
+       // 画每个像素都会执行片元着色器的main方法
+       // 坐标位经过归一化的,中间的为0.5
+       // 精度
+      // precision mediump float;
+      // uniform vec4 u_FragColor;
+      // void main(){
+      //  // 颜色
+      //  gl_FragColor = u_FragColor;
+      // }
+      precision mediump float;
+       uniform vec4 u_FragColor;
+       void main(){
+        // 颜色
+        float dist=distance(gl_PointCoord,vec2(0.5,0.5));
+        if(dist<0.5){
+         gl_FragColor = u_FragColor;
+        }else{
+         discard;
+        }
+       }
     </script>
     <script type="module">
       import { initShaders } from "./jsm/Utils.js";
       const canvas = document.querySelector("#canvas");
-      const a_points = [];
+      const stars = [];
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       // 获取着色器文本
@@ -43,6 +63,11 @@
       console.log("fsSource: ", fsSource);
       // 上下文对象
       const gl = canvas.getContext("webgl");
+      // 启动颜色合成，才能使得星星有透明度
+      // 开启片元的颜色合成功能
+      gl.enable(gl.BLEND);
+      // 设置片元的合成方式
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
       // 初始化着色器
       //解析着色器文本，整合到程序对象里，关联webgl上下文对象，实现两种语言的相互通信
       initShaders(gl, vsSource, fsSource);
@@ -50,13 +75,15 @@
 
       // 获取a_Position的存储空间
       const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      const a_PointSize = gl.getAttribLocation(gl.program, "a_PointSize");
+      const u_FragColor = gl.getUniformLocation(gl.program, "u_FragColor");
       console.log("a_Position: ", a_Position);
       // a_Position的修改
       // gl.vertexAttrib3f(a_Position, -0.23353, 0.5, 0);
       gl.vertexAttrib2f(a_Position, -0.23353, 0.5);
       // gl.vertexAttrib1f(a_Position, -0.23353);
-      // 声明颜色
-      gl.clearColor(0, 0, 0, 1);
+      // 声明颜色 注意，不然背景出不来
+      gl.clearColor(0, 0, 0, 0);
       // 刷底色
       gl.clear(gl.COLOR_BUFFER_BIT);
       // 绘制定点
@@ -72,15 +99,25 @@
           (cssX - halfWidth) / halfWidth,
           -(cssY - halfHeight) / halfHeight,
         ];
-        a_points.push({ x, y });
+        // 透明度 大小随机
+        stars.push({
+          x,
+          y,
+          size: Math.random() * 5.0 + 2,
+          color: [0.87, 0.91, 1, Math.random()],
+        });
         render();
       };
       // 渲染方法
       function render() {
         gl.clear(gl.COLOR_BUFFER_BIT);
-        for (let i = 0; i < a_points.length; i++) {
-          const element = a_points[i];
+        for (let i = 0; i < stars.length; i++) {
+          const element = stars[i];
           gl.vertexAttrib2f(a_Position, element.x, element.y);
+          gl.vertexAttrib1f(a_PointSize, element.size);
+          // 或传入类型数组
+          const arr = new Float32Array([...element.color]);
+          gl.uniform4fv(u_FragColor, arr);
           // 绘制定点
           // 同步执行不会重置缓冲区
           gl.drawArrays(gl.POINTS, 0, 1);

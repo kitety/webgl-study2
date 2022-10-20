@@ -17,17 +17,34 @@
     <canvas id="canvas"></canvas>
     <script id="vertexShader" type="x-shader/x-vertex">
       attribute vec4 a_Position;
+      attribute float a_PointSize;
       void main(){
         // 点位
         gl_Position = a_Position;
         //尺寸
-        gl_PointSize=50.0;
+        gl_PointSize=a_PointSize;
       }
     </script>
     <script id="fragmentShader" type="x-shader/x-fragment">
+      // 画每个像素都会执行片元着色器的main方法
+      // 坐标位经过归一化的,中间的为0.5
+      // 精度
+     // precision mediump float;
+     // uniform vec4 u_FragColor;
+     // void main(){
+     //  // 颜色
+     //  gl_FragColor = u_FragColor;
+     // }
+     precision mediump float;
+      uniform vec4 u_FragColor;
       void main(){
        // 颜色
-       gl_FragColor = vec4(1,1,0,1);
+       float dist=distance(gl_PointCoord,vec2(0.5,0.5));
+       if(dist<0.5){
+        gl_FragColor = u_FragColor;
+       }else{
+        discard;
+       }
       }
     </script>
     <script type="module">
@@ -50,6 +67,8 @@
 
       // 获取a_Position的存储空间
       const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      const a_PointSize = gl.getAttribLocation(gl.program, "a_PointSize");
+      const u_FragColor = gl.getUniformLocation(gl.program, "u_FragColor");
       console.log("a_Position: ", a_Position);
       // a_Position的修改
       // gl.vertexAttrib3f(a_Position, -0.23353, 0.5, 0);
@@ -72,7 +91,12 @@
           (cssX - halfWidth) / halfWidth,
           -(cssY - halfHeight) / halfHeight,
         ];
-        a_points.push({ x, y });
+        a_points.push({
+          x,
+          y,
+          z: Math.random() * 50.0,
+          color: [Math.random(), Math.random(), Math.random(), 1.0],
+        });
         render();
       };
       // 渲染方法
@@ -81,6 +105,17 @@
         for (let i = 0; i < a_points.length; i++) {
           const element = a_points[i];
           gl.vertexAttrib2f(a_Position, element.x, element.y);
+          gl.vertexAttrib1f(a_PointSize, element.z);
+          // gl.uniform4f(
+          //   u_FragColor,
+          //   element.color[0],
+          //   element.color[1],
+          //   element.color[2],
+          //   1.0
+          // );
+          // 或传入类型数组
+          const arr = new Float32Array([...element.color]);
+          gl.uniform4fv(u_FragColor, arr);
           // 绘制定点
           // 同步执行不会重置缓冲区
           gl.drawArrays(gl.POINTS, 0, 1);
