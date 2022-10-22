@@ -133,7 +133,7 @@
         // 建立轨道
         // 只更新数据不负责渲染
         const track = new Track(obj);
-        track.stat = new Date().getTime();
+        track.start = new Date().getTime();
         track.timeLen = 2000;
         track.loop = true;
         track.keyMap = new Map([
@@ -147,7 +147,6 @@
           ],
         ]);
         compose.add(track);
-        // render();
       };
       !(function ani() {
         compose.update(new Date().getTime());
