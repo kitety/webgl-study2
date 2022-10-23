@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec4 a_Position;
+      void main(){
+        // 点位
+        gl_Position = a_Position;
+        //尺寸 宽和高都是20
+        gl_PointSize=20.0;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      void main(){
+       // 颜色
+       gl_FragColor = vec4(1,1,0,1);
+      }
+    </script>
+    <script type="module">
+      import { initShaders } from "./jsm/Utils.js";
+      const canvas = document.querySelector("#canvas");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      // 获取着色器文本
+      const vsSource = document.getElementById("vertexShader").innerText;
+      console.log("vsSource: ", vsSource);
+      const fsSource = document.getElementById("fragmentShader").innerText;
+      console.log("fsSource: ", fsSource);
+      // 上下文对象
+      const gl = canvas.getContext("webgl");
+      // 初始化着色器
+      //解析着色器文本，整合到程序对象里，关联webgl上下文对象，实现两种语言的相互通信
+      initShaders(gl, vsSource, fsSource);
+      console.log("gl: ", gl);
+
+      // 如何向attribute中写入多点，绘制多点
+      // 三个点，顶点数据
+      const vertices = [0, 0.2];
+      // 缓冲对象
+      const vertexBuffer = gl.createBuffer();
+      // 绑定缓冲对象(绑定在 gl.ARRAY_BUFFER)
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      //写入数据
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+      // 修改attribute变量
+      // 获取a_Position的存储空间
+      const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+      console.log("a_Position: ", a_Position);
+      // 修改attribute
+      gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+      // 赋能 批处理的功能
+      gl.enableVertexAttribArray(a_Position);
+
+      //
+      gl.clearColor(0, 0, 0, 1);
+      // 刷底色
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      // 绘制定点
+      gl.drawArrays(gl.POINTS, 0, 1);
+
+      setTimeout(() => {
+        vertices.push(-0.2, -0.1);
+        //写入数据
+        // 附带，不是追加
+        //  缓冲对象的数据不会随着异步而清空，颜色缓冲区会
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        // 刷底色
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // 绘制定点
+        gl.drawArrays(gl.POINTS, 0, 2);
+      }, 1e3);
+      setTimeout(() => {
+        // 刷底色
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // 绘制定点
+        gl.drawArrays(gl.POINTS, 0, 2);
+        // 画线
+        gl.drawArrays(gl.LINES, 0, 2);
+
+      },2e3);
+    </script>
+  </body>
+</html>

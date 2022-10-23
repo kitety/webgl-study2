@@ -27,4 +27,18 @@ function loadShader(gl, type, source) {
     //返回着色器对象
     return shader;
 }
-export { initShaders }
+function getMousePosInWebgl(event, canvas) {
+    canvas=canvas||event.target
+    const { clientX, clientY } = event;
+    const { left, top, width, height } = canvas.getBoundingClientRect();
+    const [cssX, cssY] = [clientX - left, clientY - top];
+    const [halfWidth, halfHeight] = [width / 2, height / 2];
+
+    // 注意y需要反过来
+    const [x, y] = [
+        (cssX - halfWidth) / halfWidth,
+        -(cssY - halfHeight) / halfHeight,
+    ];
+    return { x, y }
+}
+export { initShaders, getMousePosInWebgl }
