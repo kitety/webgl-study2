@@ -87,7 +87,9 @@
         }
       });
       function popVertices() {
-        poly.popVertices();
+        if (poly) {
+          poly.popVertices();
+        }
         poly = null;
       }
       function createPoly(x, y) {

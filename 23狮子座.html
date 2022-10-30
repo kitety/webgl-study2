@@ -9,31 +9,67 @@
         overflow: hidden;
       }
       canvas {
-        background-color: red;
+        background-image: url("https://cdn.jsdelivr.net/gh/kitety/blog_img@master/image/202210191654755.png");
+        background-size: cover;
+        background-position: right bottom;
+        background-repeat: no-repeat;
+      }
+      #audio {
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+        opacity: 10%;
+        transition: opacity 200ms;
+        z-index: 20;
+      }
+
+      #audio:hover {
+        opacity: 90%;
       }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <!-- <audio id="audio" controls loop autoplay>
+      <source src="https://cdn.jsdelivr.net/gh/kitety/blog_img@master/image/szz.mp3" type="audio/mpeg" />
+    </audio> -->
     <script id="vertexShader" type="x-shader/x-vertex">
-      attribute vec4 a_Position;  
+      attribute vec4 a_Attr;
+      // 透明度
+      varying float v_Alpha;
       void main(){
         // 点位
-        gl_Position = a_Position;
+         gl_Position = vec4(a_Attr.x,a_Attr.y,0.0,1.0);
         //尺寸 宽和高都是20
-        gl_PointSize=20.0;
+        gl_PointSize=a_Attr.z;
+        v_Alpha=a_Attr.w;
       }
     </script>
     <script id="fragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      // 透明度
+      varying float v_Alpha;
       void main(){
        // 颜色
-       gl_FragColor = vec4(1,1,0,1);
+       float dist=distance(gl_PointCoord,vec2(0.5,0.5));
+       if(dist<0.5){
+        gl_FragColor = vec4(0.87,0.91,1.0,v_Alpha);
+       }else{
+        discard;
+       }
       }
     </script>
     <script type="module">
-      import { initShaders, getMousePosInWebgl } from "./jsm/Utils.js";
+      import {
+        initShaders,
+        getMousePosInWebgl,
+        glToCssPos,
+      } from "./jsm/Utils.js";
       import Sky from "./jsm/Sky.js";
       import Poly from "./jsm/Poly.js";
+      import Compose from "./jsm/Compose.js";
+      import Track from "./jsm/Track.js";
+
       const canvas = document.querySelector("#canvas");
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -45,20 +81,28 @@
       // 初始化着色器
       //解析着色器文本，整合到程序对象里，关联webgl上下文对象，实现两种语言的相互通信
       initShaders(gl, vsSource, fsSource);
+      // 开启片元的颜色合成功能
+      gl.enable(gl.BLEND);
+      // 设置片元的合成方式
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       // 顶点数据
       const vertices = [0, 0.2];
 
       // 设置底色
-      gl.clearColor(0, 0, 0, 1);
+      gl.clearColor(0, 0, 0, 0);
       // 刷底色
       gl.clear(gl.COLOR_BUFFER_BIT);
       // Sky
       const sky = new Sky(gl);
-      // 正在绘制的多边形
+      // 建立合成对象
+      const compose = new Compose();
 
-      // instance
+      // 正在绘制的多边形
       let poly = null;
+      // hover的点
+      let point = null;
+
       canvas.oncontextmenu = () => {
         return false;
       };
@@ -70,9 +114,9 @@
         } else {
           // 左键
           const { x, y } = getMousePosInWebgl(event);
-
           if (poly) {
-            poly.addVertices(x, y);
+            // poly.addVertices(x, y);
+            addVertices(x, y);
           } else {
             createPoly(x, y);
           }
@@ -80,28 +124,116 @@
         render();
       });
       canvas.addEventListener("mousemove", function (event) {
+        const { x, y } = getMousePosInWebgl(event);
+        // 看是不是滑到了点上
+        point = hoverPoint(x, y);
+        console.log("point: ", point);
+        if (point) {
+          canvas.style.cursor = "pointer";
+        } else {
+          canvas.style.cursor = "default";
+        }
+
         if (poly) {
-          const { x, y } = getMousePosInWebgl(event);
-          poly.setVertices(poly.count - 1, x, y);
-          render();
+          const obj = poly.geoData[poly.geoData.length - 1];
+          if (obj) {
+            obj.x = x;
+            obj.y = y;
+          }
         }
       });
+      function hoverPoint(mx, my) {
+        for (let { geoData } of sky.children) {
+          for (let obj of geoData) {
+            // 排除当前的点
+            if (poly && obj === poly.geoData[poly.geoData.length - 1]) {
+              continue;
+            }
+            const delta = {
+              x: mx - obj.x,
+              y: my - obj.y,
+            };
+            const { x, y } = glToCssPos(delta, canvas);
+            const dist = x * x + y * y;
+            if (dist < 100) {
+              return obj;
+            }
+          }
+        }
+        return null;
+      }
+
       function popVertices() {
-        poly.popVertices();
+        poly.geoData.pop();
+        // 还要删除合成对象
+        compose.children.pop();
         poly = null;
       }
+      function random() {
+        return Math.random() * 8 + 3.0;
+      }
       function createPoly(x, y) {
+        let o1 = point || { x, y, pointSize: random(), alpha: 1 };
+        let o2 = { x, y, pointSize: random(), alpha: 1 };
         // 第二个是移动的点
         poly = new Poly({
-          vertices: [x, y, x, y],
-          gl,
+          // 分量个数
+          size: 4,
+          geoData: [o1, o2],
+          attrName: "a_Attr",
           types: ["POINTS", "LINE_STRIP"],
         });
         sky.add(poly);
+        // 基于 o1 o2 建立时间轨
+        createTrack(o1);
+        createTrack(o2);
       }
       function render() {
         gl.clear(gl.COLOR_BUFFER_BIT);
         sky.draw();
+      }
+      !(function ani() {
+        compose.update(new Date().getTime());
+        sky.updateVertices(["x", "y", "pointSize", "alpha"]);
+        render();
+        requestAnimationFrame(ani);
+      })();
+      function createTrack(obj) {
+        const { pointSize, alpha } = obj;
+        const track = new Track(obj);
+        track.start = new Date().getTime();
+        track.timeLen = 2000;
+        track.loop = true;
+        track.keyMap = new Map([
+          [
+            "opacity",
+            [
+              [500, pointSize],
+              [1000, 0],
+              [1500, pointSize],
+            ],
+          ],
+          [
+            "alpha",
+            [
+              [500, alpha],
+              [1000, 0],
+              [1500, alpha],
+            ],
+          ],
+        ]);
+        compose.add(track);
+      }
+      function addVertices(x, y) {
+        const { geoData } = poly;
+        // 固定当前的点
+        if (point) {
+          geoData[geoData.length - 1] = point;
+        }
+        // 新增一个点
+        let obj = { x, y, pointSize: random(), alpha: 1 };
+        geoData.push(obj);
+        createTrack(obj);
       }
     </script>
   </body>

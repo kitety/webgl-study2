@@ -27,7 +27,6 @@ export default class Track {
             } else {
                 target[key] = getValBetweenFms(time, fms, last)
             }
-            console.log('  target[key]: ', target[key]);
 
         }
     }
